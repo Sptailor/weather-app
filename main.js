@@ -45,8 +45,22 @@ async function displayWeather(data) {
   const weatherResult = document.getElementById("weather-result");
   const iconUrl = await getIcon(data.currentConditions.icon);
 
-  // Get first 6 hours from day[0]
-  const hourly = data.days[0].hours.slice(0, 6);
+  // Find the current hour index in day[0].hours
+  const now = new Date();
+  const currentHour = now.getHours();
+  const todayHours = data.days[0].hours;
+
+  // Find the index of the hour closest to now
+  let startIndex = todayHours.findIndex((hour) => {
+    // hour.datetime is "HH:mm:ss"
+    const hourNum = parseInt(hour.datetime.slice(0, 2), 10);
+    return hourNum >= currentHour;
+  });
+  if (startIndex === -1) startIndex = 0; // fallback if not found
+
+  // Get next 6 hours from current hour
+  const hourly = todayHours.slice(startIndex, startIndex + 6);
+
   const hourlyItems = await Promise.all(
     hourly.map(async (hour) => {
       const hourIconUrl = await getIcon(hour.icon);
@@ -91,8 +105,7 @@ async function displayWeather(data) {
       <p><strong>Visibility:</strong> ${cc.visibility ?? "N/A"} km</p>
       <p><strong>Cloud Cover:</strong> ${cc.cloudcover ?? "N/A"}%</p>
     </div>
-    <p class="alert">alert: ${data.alerts.length>0  ? data.alerts[0].description : "No alerts"}</p>
-
+    <p class="alert">alert: ${data.alerts.length > 0 ? data.alerts[0].description : "No alerts"}</p>
     <div class="hourly-row">
       ${hourlyItems.join("")}
     </div>
