@@ -7,20 +7,21 @@ document
   });
 
 async function fetchWeather(city) {
+  document.getElementById("loader").style.display = "block";
+  document.getElementById("weather-result").innerHTML = "";
   try {
     const response = await fetch(
       `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${city}?unitGroup=metric&key=H8Q3TMEPZZGYLERHCZLH5SMNF&contentType=json`
     );
-    console.log(response);
     if (!response.ok) {
       throw new Error("City not found");
     }
     const data = await response.json();
     displayWeather(data);
   } catch (error) {
-    document.getElementById(
-      "weather-result"
-    ).innerHTML = `<p>Error: ${error.message}</p>`;
+    document.getElementById("weather-result").innerHTML = `<p>Error: ${error.message}</p>`;
+  } finally {
+    document.getElementById("loader").style.display = "none";
   }
 }
 
@@ -90,7 +91,8 @@ async function displayWeather(data) {
       <p><strong>Visibility:</strong> ${cc.visibility ?? "N/A"} km</p>
       <p><strong>Cloud Cover:</strong> ${cc.cloudcover ?? "N/A"}%</p>
     </div>
-    <p class="alert">alert: ${data.alerts ? data.alerts[0].description : "No alerts"}</p>
+    <p class="alert">alert: ${data.alerts.length>0  ? data.alerts[0].description : "No alerts"}</p>
+
     <div class="hourly-row">
       ${hourlyItems.join("")}
     </div>
