@@ -67,7 +67,7 @@
         console.log(data);
         const iconUrl = await getIcon(data.currentConditions.icon);
         weatherResult.innerHTML = `
-                <h2>Weather in ${data.name}</h2>
+                <h2>Weather in ${data.address}</h2>
                 <p>Temperature: ${data.currentConditions.feelslike} °C</p>
                 <p>Condition: ${data.currentConditions.conditions}</p>
                 <img src="${iconUrl}" alt="Weather icon">
