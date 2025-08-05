@@ -9,19 +9,44 @@ document
 async function fetchWeather(city) {
   document.getElementById("loader").style.display = "block";
   document.getElementById("weather-result").innerHTML = "";
+  
+  // Try the original input first
+  let success = await tryFetchWeather(city);
+  
+  // If that fails and the city doesn't contain a comma, try adding common suffixes
+  if (!success && !city.includes(',')) {
+    const fallbacks = [
+      `${city},US`,
+      `${city},USA`,
+      `${city},United States`
+    ];
+    
+    for (const fallback of fallbacks) {
+      success = await tryFetchWeather(fallback);
+      if (success) break;
+    }
+  }
+  
+  if (!success) {
+    document.getElementById("weather-result").innerHTML = `<p>Error: City not found. Try using format like "Chicago,IL" or "London,UK"</p>`;
+  }
+  
+  document.getElementById("loader").style.display = "none";
+}
+
+async function tryFetchWeather(city) {
   try {
     const response = await fetch(
       `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${city}?unitGroup=us&key=H8Q3TMEPZZGYLERHCZLH5SMNF&contentType=json`
     );
     if (!response.ok) {
-      throw new Error("City not found");
+      return false;
     }
     const data = await response.json();
     displayWeather(data);
+    return true;
   } catch (error) {
-    document.getElementById("weather-result").innerHTML = `<p>Error: ${error.message}</p>`;
-  } finally {
-    document.getElementById("loader").style.display = "none";
+    return false;
   }
 }
 
@@ -109,12 +134,31 @@ async function displayWeather(data) {
     return desc.length > 120 ? desc.slice(0, 117) + "..." : desc;
   }
 
-  // Capitalize location name
-  const locationName = data.address.split(',').map(part => 
-    part.trim().split(' ').map(word => 
+  // Use resolved address if available, otherwise use address
+  const addressToUse = data.resolvedAddress || data.address;
+  const addressParts = addressToUse.split(',').map(part => part.trim());
+  let locationName;
+  
+  if (addressParts.length >= 2) {
+    const city = addressParts[0].split(' ').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    ).join(' ')
-  ).join(', ');
+    ).join(' ');
+    const state = addressParts[1].split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+    
+    // Don't show "US", "USA", or "United States"
+    if (state === 'Us' || state === 'Usa' || state === 'United States') {
+      locationName = city;
+    } else {
+      locationName = `${city}, ${state}`;
+    }
+  } else {
+    // Single part address
+    locationName = addressParts[0].split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  }
 
   weatherResult.innerHTML = `
     <h2>Weather in ${locationName}</h2>
@@ -190,7 +234,8 @@ function addWeatherEffects(currentConditions) {
   effectsContainer.className = 'weather-effects';
   document.body.appendChild(effectsContainer);
 
-  const condition = currentConditions.conditions.toLowerCase();
+  var condition = currentConditions.conditions.toLowerCase();
+ // condition="storm"; // For testing purposes
   const icon = currentConditions.icon.toLowerCase();
 
   // Determine weather effects based on conditions and icon
@@ -200,6 +245,7 @@ function addWeatherEffects(currentConditions) {
       addLightningEffect(effectsContainer);
     }
   } else if (condition.includes('snow') || icon.includes('snow')) {
+    console.log("Adding snow effect");///
     addSnowEffect(effectsContainer);
   } else if (condition.includes('fog') || condition.includes('mist') || icon.includes('fog')) {
     addFogEffect(effectsContainer);
